@@ -1,0 +1,14 @@
+{
+  "Links": [
+    "/one",
+    "/two"
+  ],
+  "SEO": {
+    "HasTitle": false,
+    "Title": "",
+    "HasDescription": false,
+    "Description": "",
+    "HasH1": false
+  },
+  "Assets": []
+}

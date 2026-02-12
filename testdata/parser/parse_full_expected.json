@@ -1,0 +1,27 @@
+{
+  "Links": [
+    "/a",
+    "https://example.com/b#f"
+  ],
+  "SEO": {
+    "HasTitle": true,
+    "Title": "Hello & World",
+    "HasDescription": true,
+    "Description": "Multi\\n line\\t text",
+    "HasH1": true
+  },
+  "Assets": [
+    {
+      "URL": "/img/logo.png",
+      "Type": "image"
+    },
+    {
+      "URL": "/js/app.js",
+      "Type": "script"
+    },
+    {
+      "URL": "/static/a.css",
+      "Type": "style"
+    }
+  ]
+}
