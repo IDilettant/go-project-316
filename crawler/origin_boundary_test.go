@@ -39,13 +39,13 @@ func TestSpec_SameOrigin_MustCompare_SchemeAndHostIncludingPort(t *testing.T) {
 	})
 
 	opts := Options{
-		URL:        "https://example.com",
-		Depth:      1,
-		Workers:    1,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         "https://example.com",
+		Depth:       1,
+		Concurrency: 1,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
