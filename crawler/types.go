@@ -41,7 +41,7 @@ type Page struct {
 	Depth        int          `json:"depth"`
 	HTTPStatus   int          `json:"http_status"`
 	Status       string       `json:"status"`
-	Error        string       `json:"error"`
+	Error        string       `json:"error,omitempty"`
 	SEO          SEO          `json:"seo"`
 	BrokenLinks  []BrokenLink `json:"broken_links"`
 	Assets       []Asset      `json:"assets"`

@@ -43,15 +43,6 @@ func analyzeReport(ctx context.Context, opts Options) (Report, error) {
 	rootURL := baseURL.String()
 	report.RootURL = rootURL
 
-	if opts.HTTPClient == nil {
-		page := newPage(rootURL, 0, opts.Clock.Now())
-		page.Status = statusError
-		page.Error = "http client is required"
-		report.Pages = append(report.Pages, page)
-
-		return report, errors.New("http client is required")
-	}
-
 	rateInterval := rateInterval(opts)
 	rateLimiter := limiter.NewWithTimer(rateInterval, opts.Clock)
 
@@ -74,6 +65,10 @@ func analyzeReport(ctx context.Context, opts Options) (Report, error) {
 func normalizeAnalyzeOptions(opts Options) Options {
 	if opts.Clock == nil {
 		opts.Clock = limiter.NewClock()
+	}
+
+	if opts.HTTPClient == nil {
+		opts.HTTPClient = &http.Client{}
 	}
 
 	if opts.UserAgent == "" {

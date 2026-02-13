@@ -100,6 +100,38 @@ func TestAnalyze_ClockNil_NoPanic_GeneratedAtRFC3339UTC(t *testing.T) {
 	require.Equal(t, time.UTC, parsedTime.Location())
 }
 
+func TestAnalyze_SuccessPage_OmitsEmptyErrorField(t *testing.T) {
+	t.Parallel()
+
+	clock := &testClock{now: fixtureTime}
+	client := newFixtureClient(t)
+	opts := crawler.Options{
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		HTTPClient:  client,
+		Clock:       clock,
+	}
+
+	data, err := crawler.Analyze(context.Background(), opts)
+	require.NoError(t, err)
+
+	var report map[string]any
+	require.NoError(t, json.Unmarshal(data, &report))
+
+	pages, ok := report["pages"].([]any)
+	require.True(t, ok)
+	require.NotEmpty(t, pages)
+
+	page, ok := pages[0].(map[string]any)
+	require.True(t, ok)
+
+	_, hasError := page["error"]
+	require.False(t, hasError, "successful page must omit empty error field")
+}
+
 func withIndent(opts crawler.Options, indent bool) crawler.Options {
 	opts.IndentJSON = indent
 

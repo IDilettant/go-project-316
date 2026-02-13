@@ -194,7 +194,7 @@ func TestSpec_Assets_TimeoutApplied_StatusCodeZero_WithError(t *testing.T) {
 
 	client := &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-			if req.URL.Path == "/" {
+			if req.URL.Path == "" || req.URL.Path == "/" {
 				return responseForRequest(req, http.StatusOK, `<html><body><img src="/static/slow.png"/></body></html>`, http.Header{"Content-Type": []string{"text/html"}}), nil
 			}
 
