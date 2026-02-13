@@ -18,15 +18,15 @@ func TestSpec_Golden_JSON_ExactMatch_Order_Keys_Required(t *testing.T) {
 	client := newFixtureClient(t)
 
 	opts := crawler.Options{
-		URL:        fixtureBaseURL,
-		Depth:      1,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		IndentJSON: true,
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		IndentJSON:  true,
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	got, err := crawler.Analyze(context.Background(), opts)
@@ -43,14 +43,14 @@ func TestSpec_IndentJSON_ChangesOnlyFormatting_NotContent(t *testing.T) {
 	client := newFixtureClient(t)
 
 	optsBase := crawler.Options{
-		URL:        fixtureBaseURL,
-		Depth:      1,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	compact, err := crawler.Analyze(context.Background(), withIndent(optsBase, false))
@@ -68,6 +68,6 @@ func TestSpec_IndentJSON_ChangesOnlyFormatting_NotContent(t *testing.T) {
 
 func withIndent(opts crawler.Options, indent bool) crawler.Options {
 	opts.IndentJSON = indent
-	
+
 	return opts
 }
