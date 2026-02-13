@@ -27,6 +27,10 @@ func analyzeReport(ctx context.Context, opts Options) (Report, error) {
 	if opts.URL == "" {
 		return report, errors.New("url is required")
 	}
+	
+	if opts.Clock == nil {
+		opts.Clock = limiter.NewClock()
+	}
 
 	baseURL, err := parseRootURL(opts.URL)
 	if err != nil {
@@ -99,6 +103,7 @@ func rateInterval(opts Options) time.Duration {
 		if interval <= 0 {
 			return time.Nanosecond
 		}
+		
 		return interval
 	}
 
@@ -106,6 +111,7 @@ func rateInterval(opts Options) time.Duration {
 	if delay < 0 {
 		delay = 0
 	}
+	
 	if delay > 0 {
 		return delay
 	}
@@ -118,14 +124,18 @@ func parseRootURL(rawURL string) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
+	
 	if parsed.Scheme == "" || parsed.Host == "" {
 		return nil, errors.New("missing scheme or host")
 	}
+	
 	if parsed.Path == "/" {
 		parsed.Path = ""
 		parsed.RawPath = ""
 	}
+	
 	parsed.Fragment = ""
+	
 	return parsed, nil
 }
 
@@ -142,6 +152,7 @@ func fetchAssetResult(ctx context.Context, fetch *fetcher.Fetcher, absoluteURL s
 		errMsg = errorString(err, result.StatusCode)
 		if result.StatusCode == 0 {
 			fetchResult.err = errMsg
+			
 			return fetchResult
 		}
 	}
@@ -155,12 +166,15 @@ func fetchAssetResult(ctx context.Context, fetch *fetcher.Fetcher, absoluteURL s
 	if result.StatusCode >= http.StatusBadRequest {
 		parts = append(parts, fmt.Sprintf("http status %d", result.StatusCode))
 	}
+	
 	if errMsg != "" {
 		parts = append(parts, errMsg)
 	}
+	
 	if sizeErr != nil {
 		parts = append(parts, sizeErr.Error())
 	}
+	
 	if len(parts) > 0 {
 		fetchResult.err = strings.Join(parts, ": ")
 	}
@@ -175,6 +189,7 @@ func sizeFromResult(result fetcher.Result) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		
 		return value, nil
 	}
 
@@ -187,13 +202,16 @@ func sizeFromResult(result fetcher.Result) (int64, error) {
 
 func parseContentLength(value string) (int64, error) {
 	trimmed := strings.TrimSpace(value)
+	
 	parsedValue, err := strconv.ParseInt(trimmed, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("invalid content length %q: %w", trimmed, err)
 	}
+	
 	if parsedValue < 0 {
 		return 0, fmt.Errorf("invalid content length %q: negative value", trimmed)
 	}
+	
 	return parsedValue, nil
 }
 
@@ -213,9 +231,11 @@ func errorForStatus(err error, statusCode int) error {
 	if err != nil {
 		return err
 	}
+	
 	if statusCode >= 400 {
 		return errors.New(statusText(statusCode))
 	}
+	
 	return nil
 }
 
@@ -224,5 +244,6 @@ func statusText(statusCode int) string {
 	if text == "" {
 		return fmt.Sprintf("http status %d", statusCode)
 	}
+	
 	return text
 }
