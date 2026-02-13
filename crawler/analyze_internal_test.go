@@ -249,3 +249,64 @@ func TestBuildLinkResults_DeduplicatesBrokenLinksByCanonicalURL(t *testing.T) {
 		t.Fatalf("brokenLinks[0].URL = %q; want %q", brokenLinks[0].URL, "https://example.com/missing")
 	}
 }
+
+func TestDedupBrokenLinks_CanonicalizesAndDeduplicates(t *testing.T) {
+	t.Parallel()
+
+	links := []BrokenLink{
+		{URL: "HTTP://Example.com:80/missing", StatusCode: 404, Error: "Not Found"},
+		{URL: "http://example.com/missing#frag", StatusCode: 404, Error: "Not Found"},
+	}
+
+	deduped := dedupBrokenLinks(links)
+	if len(deduped) != 1 {
+		t.Fatalf("len(deduped) = %d; want 1", len(deduped))
+	}
+
+	if deduped[0].URL != "http://example.com/missing" {
+		t.Fatalf("deduped[0].URL = %q; want %q", deduped[0].URL, "http://example.com/missing")
+	}
+}
+
+func TestCanonicalBrokenURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{
+			name: "root slash and default http port",
+			raw:  "HTTP://Example.COM:80/",
+			want: "http://example.com",
+		},
+		{
+			name: "fragment removed",
+			raw:  "https://example.com/missing#frag",
+			want: "https://example.com/missing",
+		},
+		{
+			name: "non default port preserved",
+			raw:  "https://Example.com:8443/missing",
+			want: "https://example.com:8443/missing",
+		},
+		{
+			name: "invalid raw passthrough",
+			raw:  "://bad",
+			want: "://bad",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := canonicalBrokenURL(tc.raw)
+			if got != tc.want {
+				t.Fatalf("canonicalBrokenURL(%q) = %q; want %q", tc.raw, got, tc.want)
+			}
+		})
+	}
+}

@@ -3,8 +3,10 @@ package crawler
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -369,7 +371,7 @@ func (a *analyzer) processJob(ctx context.Context, job crawlJob) pageResult {
 	}
 
 	brokenLinks, pageLinks := a.checkLinks(ctx, job, parsed.Links)
-	page.BrokenLinks = brokenLinks
+	page.BrokenLinks = dedupBrokenLinks(brokenLinks)
 	page.Assets = a.collectAssets(ctx, job.url, parsed.Assets)
 
 	return pageResult{
@@ -471,6 +473,7 @@ func buildLinkResults(results []linkCheck, processed []bool) ([]BrokenLink, []st
 			if key == "" {
 				key = res.link.URL
 			}
+			key = canonicalBrokenURL(key)
 
 			if seenBroken[key] {
 				continue
@@ -489,6 +492,76 @@ func buildLinkResults(results []linkCheck, processed []bool) ([]BrokenLink, []st
 	}
 
 	return brokenLinks, crawlLinks
+}
+
+func dedupBrokenLinks(links []BrokenLink) []BrokenLink {
+	if len(links) < 2 {
+		if len(links) == 1 {
+			out := links[0]
+			out.URL = canonicalBrokenURL(out.URL)
+			return []BrokenLink{out}
+		}
+
+		return links
+	}
+
+	unique := make([]BrokenLink, 0, len(links))
+	seen := make(map[string]bool, len(links))
+
+	for _, link := range links {
+		key := canonicalBrokenURL(link.URL)
+		if seen[key] {
+			continue
+		}
+
+		seen[key] = true
+		out := link
+		out.URL = key
+		unique = append(unique, out)
+	}
+
+	return unique
+}
+
+func canonicalBrokenURL(raw string) string {
+	if raw == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+
+	parsed.Fragment = ""
+	parsed.Scheme = strings.ToLower(parsed.Scheme)
+
+	host := strings.ToLower(parsed.Hostname())
+	port := parsed.Port()
+
+	switch {
+	case parsed.Scheme == "http" && port == "80":
+		port = ""
+	case parsed.Scheme == "https" && port == "443":
+		port = ""
+	}
+
+	if port == "" {
+		parsed.Host = host
+	} else {
+		parsed.Host = net.JoinHostPort(host, port)
+	}
+
+	if parsed.Path == "/" {
+		parsed.Path = ""
+	}
+
+	parsed.RawPath = ""
+	if parsed.RawQuery == "" {
+		parsed.ForceQuery = false
+	}
+
+	return parsed.String()
 }
 
 func (a *analyzer) resolveLinks(pageURL string, links []string) []string {
