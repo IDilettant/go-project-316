@@ -557,6 +557,8 @@ func canonicalBrokenURL(raw string) string {
 
 	if parsed.Path == "/" {
 		parsed.Path = ""
+	} else if parsed.Path != "" {
+		parsed.Path = strings.TrimRight(parsed.Path, "/")
 	}
 
 	parsed.RawPath = ""
