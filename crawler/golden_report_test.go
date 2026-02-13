@@ -3,6 +3,7 @@ package crawler_test
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,6 +65,39 @@ func TestSpec_IndentJSON_ChangesOnlyFormatting_NotContent(t *testing.T) {
 	require.NoError(t, json.Unmarshal(pretty, &b))
 	require.Equal(t, a, b, "IndentJSON must not change JSON content")
 	require.NotEqual(t, string(compact), string(pretty), "IndentJSON must change formatting")
+}
+
+func TestAnalyze_ClockNil_NoPanic_GeneratedAtRFC3339UTC(t *testing.T) {
+	t.Parallel()
+
+	client := newFixtureClient(t)
+	opts := crawler.Options{
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		HTTPClient:  client,
+	}
+
+	var data []byte
+	var err error
+	require.NotPanics(t, func() {
+		data, err = crawler.Analyze(context.Background(), opts)
+	})
+	require.NoError(t, err)
+
+	var report struct {
+		GeneratedAt string `json:"generated_at"`
+	}
+
+	require.NoError(t, json.Unmarshal(data, &report))
+	require.NotEmpty(t, report.GeneratedAt)
+	require.True(t, strings.HasSuffix(report.GeneratedAt, "Z"))
+
+	parsedTime, parseErr := time.Parse(time.RFC3339, report.GeneratedAt)
+	require.NoError(t, parseErr)
+	require.Equal(t, time.UTC, parsedTime.Location())
 }
 
 func withIndent(opts crawler.Options, indent bool) crawler.Options {
