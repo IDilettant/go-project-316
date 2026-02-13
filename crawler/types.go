@@ -20,7 +20,7 @@ type Options struct {
 	Timeout            time.Duration
 	RPS                float64
 	UserAgent          string
-	Workers            int
+	Concurrency        int
 	MaxConcurrentFetch int
 	IndentJSON         bool
 	HTTPClient         *http.Client
