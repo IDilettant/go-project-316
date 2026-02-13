@@ -14,14 +14,14 @@ func TestSpec_HTTPClientRequired_ReturnsError(t *testing.T) {
 	clock := &testClock{now: fixtureTime}
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: nil,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  nil,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
