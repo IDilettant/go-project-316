@@ -33,16 +33,16 @@ func TestSpec_RateLimit_RPSOverridesDelay_AndIsGlobal(t *testing.T) {
 	}
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      1,
-		Workers:    4,                // even with workers>1, the limiter must be global
-		Delay:      10 * time.Second, // should be ignored
-		RPS:        5,                // 200ms interval
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 4,                // even with workers>1, the limiter must be global
+		Delay:       10 * time.Second, // should be ignored
+		RPS:         5,                // 200ms interval
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	_, err := analyzeReport(context.Background(), opts)
@@ -81,15 +81,15 @@ func TestSpec_RateLimit_CancelStopsWaiting(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		opts := Options{
-			URL:        fixtureBaseURL,
-			Depth:      1,
-			Workers:    2,
-			Delay:      10 * time.Second, // force waiting
-			Retries:    0,
-			Timeout:    time.Second,
-			UserAgent:  "test-agent",
-			HTTPClient: client,
-			Clock:      clock,
+			URL:         fixtureBaseURL,
+			Depth:       1,
+			Concurrency: 2,
+			Delay:       10 * time.Second, // force waiting
+			Retries:     0,
+			Timeout:     time.Second,
+			UserAgent:   "test-agent",
+			HTTPClient:  client,
+			Clock:       clock,
 		}
 		_, _ = analyzeReport(ctx, opts)
 		close(done)
