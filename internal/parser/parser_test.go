@@ -79,7 +79,7 @@ func readParseResultFixture(t *testing.T, filename string) ParseResult {
 	return result
 }
 
-func equalParseResult(got ParseResult, want ParseResult) bool {
+func equalParseResult(got, want ParseResult) bool {
 	if !equalStrings(got.Links, want.Links) {
 		return false
 	}
@@ -101,7 +101,7 @@ func equalParseResult(got ParseResult, want ParseResult) bool {
 	return true
 }
 
-func equalStrings(got []string, want []string) bool {
+func equalStrings(got, want []string) bool {
 	if len(got) != len(want) {
 		return false
 	}
