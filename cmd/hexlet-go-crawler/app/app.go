@@ -95,16 +95,16 @@ func optionsFromCLI(
 	clock limiter.Timer,
 ) crawler.Options {
 	return crawler.Options{
-		URL:        rootURL,
-		Depth:      c.Int("depth"),
-		IndentJSON: true,
-		Timeout:    c.Duration("timeout"),
-		Delay:      c.Duration("delay"),
-		RPS:        c.Float64("rps"),
-		Retries:    c.Int("retries"),
-		UserAgent:  c.String("user-agent"),
-		Workers:    c.Int("workers"),
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         rootURL,
+		Depth:       c.Int("depth"),
+		IndentJSON:  true,
+		Timeout:     c.Duration("timeout"),
+		Delay:       c.Duration("delay"),
+		RPS:         c.Float64("rps"),
+		Retries:     c.Int("retries"),
+		UserAgent:   c.String("user-agent"),
+		Concurrency: c.Int("workers"),
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 }
