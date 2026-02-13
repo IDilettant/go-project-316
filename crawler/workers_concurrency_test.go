@@ -43,7 +43,7 @@ func TestSpec_Workers_EnableConcurrentFetchOfPages(t *testing.T) {
 		opts := Options{
 			URL:        fixtureBaseURL,
 			Depth:      1,
-			Workers:    2,
+			Concurrency:    2,
 			Retries:    0,
 			Timeout:    time.Second,
 			UserAgent:  "test-agent",
