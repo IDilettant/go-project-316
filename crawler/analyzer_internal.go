@@ -37,7 +37,6 @@ type linkCheck struct {
 }
 
 type linkCheckJob struct {
-	ctx      context.Context
 	idx      int
 	url      string
 	resultCh chan<- linkCheckResult
@@ -90,7 +89,6 @@ type aggregator struct {
 	jobs         chan crawlJob
 	pending      int
 	jobsClosed   bool
-	ctx          context.Context
 	maxDepth     int
 	report       *Report
 	baseURL      *url.URL
@@ -105,7 +103,7 @@ type linkChecker struct {
 	wg       sync.WaitGroup
 }
 
-func newLinkChecker(analyzer *analyzer, workerCount int) *linkChecker {
+func newLinkChecker(ctx context.Context, analyzer *analyzer, workerCount int) *linkChecker {
 	jobs := make(chan linkCheckJob, workerCount*4)
 	checker := &linkChecker{
 		analyzer: analyzer,
@@ -118,7 +116,7 @@ func newLinkChecker(analyzer *analyzer, workerCount int) *linkChecker {
 			defer checker.wg.Done()
 
 			for job := range jobs {
-				brokenLink, broken := analyzer.checkBrokenLink(job.ctx, job.url)
+				brokenLink, broken := analyzer.checkBrokenLink(ctx, job.url)
 				job.resultCh <- linkCheckResult{
 					idx: job.idx,
 					check: linkCheck{
@@ -162,7 +160,7 @@ func (a *analyzer) run(ctx context.Context) error {
 
 	linkCheckWorkers := linkCheckPoolSize(a.options)
 
-	a.linkCheck = newLinkChecker(a, linkCheckWorkers)
+	a.linkCheck = newLinkChecker(ctx, a, linkCheckWorkers)
 	defer a.linkCheck.stop()
 
 	jobBuffer := workerCount * 4
@@ -196,14 +194,13 @@ func (a *analyzer) run(ctx context.Context) error {
 		clock:        a.options.Clock,
 		state:        state,
 		jobs:         jobs,
-		ctx:          ctx,
 		maxDepth:     a.maxDepth,
 		report:       a.report,
 		baseURL:      a.baseURL,
 		pendingPages: make(map[uint64]Page),
 	}
 
-	agg.enqueue(crawlJob{
+	agg.enqueue(ctx, crawlJob{
 		url:          a.baseURL.String(),
 		depth:        0,
 		discoveredAt: a.options.Clock.Now(),
@@ -234,7 +231,7 @@ func (a *analyzer) drainResults(
 				if !ok {
 					return agg.state.analysisErr
 				}
-				agg.onResult(result)
+				agg.onResult(ctx, result)
 			case <-ctx.Done():
 				canceled = true
 				agg.closeJobsIfNeeded()
@@ -248,7 +245,7 @@ func (a *analyzer) drainResults(
 			return agg.state.analysisErr
 		}
 
-		agg.onResult(result)
+		agg.onResult(ctx, result)
 	}
 }
 
@@ -259,7 +256,7 @@ func (a *analyzer) worker(ctx context.Context, jobs <-chan crawlJob, results cha
 	}
 }
 
-func (a *aggregator) enqueue(job crawlJob) {
+func (a *aggregator) enqueue(ctx context.Context, job crawlJob) {
 	if a.state.seen[job.url] {
 		return
 	}
@@ -272,7 +269,7 @@ func (a *aggregator) enqueue(job crawlJob) {
 		a.state.seen[job.url] = true
 		a.nextSeq++
 		a.pending++
-	case <-a.ctx.Done():
+	case <-ctx.Done():
 	}
 }
 
@@ -285,13 +282,13 @@ func (a *aggregator) closeJobsIfNeeded() {
 	a.jobsClosed = true
 }
 
-func (a *aggregator) onResult(result pageResult) {
+func (a *aggregator) onResult(ctx context.Context, result pageResult) {
 	a.pending--
-	a.handleResult(result)
+	a.handleResult(ctx, result)
 	a.closeJobsIfNeeded()
 }
 
-func (a *aggregator) handleResult(result pageResult) {
+func (a *aggregator) handleResult(ctx context.Context, result pageResult) {
 	a.pendingPages[result.job.seq] = result.page
 	a.flushCommitted()
 
@@ -309,7 +306,7 @@ func (a *aggregator) handleResult(result pageResult) {
 			continue
 		}
 
-		a.enqueue(crawlJob{
+		a.enqueue(ctx, crawlJob{
 			url:          link,
 			depth:        nextDepth,
 			discoveredAt: a.clock.Now(),
@@ -405,7 +402,6 @@ feedLoop:
 		case <-ctx.Done():
 			break feedLoop
 		case a.linkCheck.jobs <- linkCheckJob{
-			ctx:      ctx,
 			idx:      idx,
 			url:      absoluteURL,
 			resultCh: resultCh,
