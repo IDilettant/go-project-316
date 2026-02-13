@@ -171,7 +171,7 @@ func TestAnalyze_PagesAreSortedByDepthThenURL(t *testing.T) {
 
 	opts := crawler.Options{
 		URL:         fixtureBaseURL,
-		Depth:       1,
+		Depth:       2,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,

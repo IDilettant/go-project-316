@@ -300,7 +300,7 @@ func (a *aggregator) handleResult(ctx context.Context, result pageResult) {
 	}
 
 	nextDepth := result.job.depth + 1
-	if nextDepth > a.maxDepth {
+	if nextDepth >= a.maxDepth {
 		return
 	}
 
@@ -372,11 +372,10 @@ func (a *analyzer) processJob(ctx context.Context, job crawlJob) pageResult {
 	}
 
 	brokenLinks := []BrokenLink{}
-	var pageLinks []string
+	pageLinks := []string{}
 	if job.depth < a.maxDepth {
 		brokenLinks, pageLinks = a.checkLinks(ctx, job, parsed.Links)
 	}
-
 	page.BrokenLinks = dedupBrokenLinks(brokenLinks)
 	page.Assets = a.collectAssets(ctx, job.url, parsed.Assets)
 
@@ -389,10 +388,6 @@ func (a *analyzer) processJob(ctx context.Context, job crawlJob) pageResult {
 
 func (a *analyzer) checkLinks(ctx context.Context, job crawlJob, links []string) ([]BrokenLink, []string) {
 	resolved := a.resolveLinks(job.url, links)
-	if len(resolved) == 0 {
-		return []BrokenLink{}, []string{}
-	}
-	resolved = filterSameOriginLinks(a.baseURL, resolved)
 	if len(resolved) == 0 {
 		return []BrokenLink{}, []string{}
 	}
@@ -610,19 +605,6 @@ func (a *analyzer) resolveLinks(pageURL string, links []string) []string {
 	}
 
 	return resolved
-}
-
-func filterSameOriginLinks(baseURL *url.URL, links []string) []string {
-	filtered := make([]string, 0, len(links))
-	for _, link := range links {
-		if !urlutil.SameOrigin(baseURL, link) {
-			continue
-		}
-
-		filtered = append(filtered, link)
-	}
-
-	return filtered
 }
 
 func (a *analyzer) checkBrokenLink(ctx context.Context, absoluteURL string) (BrokenLink, bool) {

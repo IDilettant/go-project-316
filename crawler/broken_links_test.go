@@ -37,7 +37,7 @@ func TestSpec_BrokenLinks_IncludeOnlyBroken_AndUseAbsoluteURL(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       1,
+		Depth:       2,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,
@@ -183,7 +183,7 @@ func TestSpec_BrokenLinks_DeduplicatesSameURLOnPage(t *testing.T) {
 	require.Equal(t, fixtureBaseURL+"/missing", report.Pages[0].BrokenLinks[0].URL)
 }
 
-func TestSpec_BrokenLinks_NotCollectedAtMaxDepth(t *testing.T) {
+func TestSpec_BrokenLinks_CollectedOnLastCrawledDepth(t *testing.T) {
 	t.Parallel()
 
 	clock := &testClock{now: fixtureTime}
@@ -206,7 +206,7 @@ func TestSpec_BrokenLinks_NotCollectedAtMaxDepth(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       1,
+		Depth:       2,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,
@@ -230,8 +230,9 @@ func TestSpec_BrokenLinks_NotCollectedAtMaxDepth(t *testing.T) {
 	}
 
 	require.NotNil(t, childPage)
-	require.Empty(t, childPage.BrokenLinks)
-	require.Zero(t, missingCalls)
+	require.Len(t, childPage.BrokenLinks, 1)
+	require.Equal(t, fixtureBaseURL+"/missing", childPage.BrokenLinks[0].URL)
+	require.Equal(t, 1, missingCalls)
 }
 
 func TestSpec_BrokenLinks_DeduplicatesTrailingSlashVariants(t *testing.T) {

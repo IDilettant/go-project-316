@@ -158,7 +158,7 @@ func TestSpec_BrokenLinks_DepthBoundary_RootOnlyAtDepthOne(t *testing.T) {
 
 	report, err := analyzeReport(context.Background(), optionsForContract(fixtureBaseURL, 1, 0, client, clock))
 	require.NoError(t, err)
-	require.Len(t, report.Pages, 2)
+	require.Len(t, report.Pages, 1)
 
 	root := findPageByPath(t, report, "/")
 	require.NotNil(t, root)
@@ -166,8 +166,7 @@ func TestSpec_BrokenLinks_DepthBoundary_RootOnlyAtDepthOne(t *testing.T) {
 	require.Equal(t, fixtureBaseURL+"/missing", root.BrokenLinks[0].URL)
 
 	child := findPageByPath(t, report, "/child")
-	require.NotNil(t, child)
-	require.Empty(t, child.BrokenLinks)
+	require.Nil(t, child)
 	require.Zero(t, calls.countHostPath("example.com", "/missing2"))
 }
 
@@ -241,12 +240,12 @@ func TestSpec_BrokenLinks_RootErrorPageNullCollections(t *testing.T) {
 	require.Nil(t, pageMap["assets"])
 }
 
-func TestSpec_BrokenLinks_ChildErrorPageNullCollections_ProcessJob(t *testing.T) {
+func TestSpec_BrokenLinks_ChildErrorPageNullCollections(t *testing.T) {
 	t.Parallel()
 
 	clock := &testClock{now: fixtureTime}
 	client, _ := newTrackedClient(t, map[string]roundTripResponder{
-		routeID("https", "example.com", "/child"): func(req *http.Request) (*http.Response, error) {
+		routeID("https", "example.com", "/"): func(req *http.Request) (*http.Response, error) {
 			return responseForRequest(req, http.StatusInternalServerError, "boom", nil), nil
 		},
 	})
@@ -255,12 +254,12 @@ func TestSpec_BrokenLinks_ChildErrorPageNullCollections_ProcessJob(t *testing.T)
 	baseURL, err := parseRootURL(opts.URL)
 	require.NoError(t, err)
 
-	limiter := limiter.NewWithTimer(rateInterval(opts), opts.Clock)
+	rateLimiter := limiter.NewWithTimer(rateInterval(opts), opts.Clock)
 	pageFetcher := fetcher.New(
 		opts.HTTPClient,
 		opts.Timeout,
 		opts.UserAgent,
-		limiter,
+		rateLimiter,
 		opts.Retries,
 		opts.Delay,
 		opts.Clock,
@@ -270,17 +269,18 @@ func TestSpec_BrokenLinks_ChildErrorPageNullCollections_ProcessJob(t *testing.T)
 	a := newAnalyzer(opts, baseURL, pageFetcher, &report)
 
 	result := a.processJob(context.Background(), crawlJob{
-		url:          fixtureBaseURL + "/child",
-		depth:        1,
+		url:          fixtureBaseURL,
+		depth:        0,
 		discoveredAt: fixtureTime,
 	})
+	require.NoError(t, err)
 
 	require.Equal(t, statusError, result.page.Status)
 	require.Nil(t, result.page.BrokenLinks)
 	require.Nil(t, result.page.Assets)
 }
 
-func TestSpec_BrokenLinks_ExternalLinksAreIgnored(t *testing.T) {
+func TestSpec_BrokenLinks_ExternalLinksCheckedButNotCrawled(t *testing.T) {
 	t.Parallel()
 
 	clock := &testClock{now: fixtureTime}
@@ -300,15 +300,16 @@ func TestSpec_BrokenLinks_ExternalLinksAreIgnored(t *testing.T) {
 
 	report, err := analyzeReport(context.Background(), optionsForContract(fixtureBaseURL, 1, 0, client, clock))
 	require.NoError(t, err)
+	require.Len(t, report.Pages, 1)
 
 	root := findPageByPath(t, report, "/")
 	require.NotNil(t, root)
-	require.Len(t, root.BrokenLinks, 1)
-	require.Equal(t, fixtureBaseURL+"/missing", root.BrokenLinks[0].URL)
-	require.Zero(t, calls.countHostPath("evil.test", "/broken"))
+	require.Len(t, root.BrokenLinks, 2)
+	require.Equal(t, 1, calls.countHostPath("evil.test", "/broken"))
+	require.Nil(t, findPageByPath(t, report, "/broken"))
 }
 
-func TestSpec_BrokenLinks_ProtocolRelativeExternalIgnored(t *testing.T) {
+func TestSpec_BrokenLinks_ProtocolRelativeExternalCheckedButNotCrawled(t *testing.T) {
 	t.Parallel()
 
 	clock := &testClock{now: fixtureTime}
@@ -324,14 +325,16 @@ func TestSpec_BrokenLinks_ProtocolRelativeExternalIgnored(t *testing.T) {
 
 	report, err := analyzeReport(context.Background(), optionsForContract("http://example.com", 1, 0, client, clock))
 	require.NoError(t, err)
+	require.Len(t, report.Pages, 1)
 
 	root := findPageByPath(t, report, "/")
 	require.NotNil(t, root)
-	require.Empty(t, root.BrokenLinks)
-	require.Zero(t, calls.countHostPath("evil.test", "/broken"))
+	require.Len(t, root.BrokenLinks, 1)
+	require.Equal(t, "http://evil.test/broken", root.BrokenLinks[0].URL)
+	require.Equal(t, 1, calls.countHostPath("evil.test", "/broken"))
 }
 
-func TestSpec_BrokenLinks_DifferentSchemeSameHostIgnored(t *testing.T) {
+func TestSpec_BrokenLinks_DifferentSchemeSameHostCheckedButNotCrawled(t *testing.T) {
 	t.Parallel()
 
 	clock := &testClock{now: fixtureTime}
@@ -347,14 +350,16 @@ func TestSpec_BrokenLinks_DifferentSchemeSameHostIgnored(t *testing.T) {
 
 	report, err := analyzeReport(context.Background(), optionsForContract("http://example.com", 1, 0, client, clock))
 	require.NoError(t, err)
+	require.Len(t, report.Pages, 1)
 
 	root := findPageByPath(t, report, "/")
 	require.NotNil(t, root)
-	require.Empty(t, root.BrokenLinks)
-	require.Zero(t, calls.countHostPath("example.com", "/missing"))
+	require.Len(t, root.BrokenLinks, 1)
+	require.Equal(t, "https://example.com/missing", root.BrokenLinks[0].URL)
+	require.Equal(t, 1, calls.countHostPath("example.com", "/missing"))
 }
 
-func TestSpec_BrokenLinks_DifferentPortIgnored(t *testing.T) {
+func TestSpec_BrokenLinks_DifferentPortCheckedButNotCrawled(t *testing.T) {
 	t.Parallel()
 
 	clock := &testClock{now: fixtureTime}
@@ -370,11 +375,13 @@ func TestSpec_BrokenLinks_DifferentPortIgnored(t *testing.T) {
 
 	report, err := analyzeReport(context.Background(), optionsForContract("http://example.com", 1, 0, client, clock))
 	require.NoError(t, err)
+	require.Len(t, report.Pages, 1)
 
 	root := findPageByPath(t, report, "/")
 	require.NotNil(t, root)
-	require.Empty(t, root.BrokenLinks)
-	require.Zero(t, calls.countHostPath("example.com", "/missing"))
+	require.Len(t, root.BrokenLinks, 1)
+	require.Equal(t, "http://example.com:8080/missing", root.BrokenLinks[0].URL)
+	require.Equal(t, 1, calls.countHostPath("example.com", "/missing"))
 }
 
 func TestSpec_BrokenLinks_CanonicalizationCases(t *testing.T) {
@@ -644,6 +651,7 @@ func TestSpec_BrokenLinks_IntegratedDepthAndScopeContract(t *testing.T) {
 
 	report, err := analyzeReport(context.Background(), optionsForContract(fixtureBaseURL, 1, 0, client, clock))
 	require.NoError(t, err)
+	require.Len(t, report.Pages, 1)
 
 	root := findPageByPath(t, report, "/")
 	require.NotNil(t, root)
@@ -651,8 +659,7 @@ func TestSpec_BrokenLinks_IntegratedDepthAndScopeContract(t *testing.T) {
 	require.Equal(t, fixtureBaseURL+"/missing", root.BrokenLinks[0].URL)
 
 	child := findPageByPath(t, report, "/child")
-	require.NotNil(t, child)
-	require.Empty(t, child.BrokenLinks)
+	require.Nil(t, child)
 
 	require.Zero(t, calls.countHostPath("example.com", "/missing2"))
 	require.Zero(t, calls.countHostPath("evil.test", "/broken"))

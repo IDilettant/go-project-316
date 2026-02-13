@@ -105,7 +105,7 @@ func TestSpec_Assets_CacheByURL_RespectsTypePerPage(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       1,
+		Depth:       2,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,
