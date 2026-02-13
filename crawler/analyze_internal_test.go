@@ -179,10 +179,10 @@ func TestNormalizeHelpers(t *testing.T) {
 	if got := normalizeMaxDepth(2); got != 2 {
 		t.Fatalf("normalizeMaxDepth(2) = %d", got)
 	}
-	if got := normalizeMaxConcurrentFetch(Options{Workers: 0, MaxConcurrentFetch: 0}); got != 1 {
+	if got := normalizeMaxConcurrentFetch(Options{Concurrency: 0, MaxConcurrentFetch: 0}); got != 1 {
 		t.Fatalf("normalizeMaxConcurrentFetch() = %d", got)
 	}
-	if got := linkCheckPoolSize(Options{Workers: 10}); got != 2 {
+	if got := linkCheckPoolSize(Options{Concurrency: 10}); got != 2 {
 		t.Fatalf("linkCheckPoolSize() = %d", got)
 	}
 }
@@ -198,11 +198,11 @@ func TestResolveLinksSkipsInvalid(t *testing.T) {
 	a := &analyzer{baseURL: base}
 	got := a.resolveLinks("https://example.com", []string{"/a", "#frag", "mailto:x@y.z", "", "https://example.com/b#f"})
 	want := []string{"https://example.com/a", "https://example.com/b"}
-	
+
 	if len(got) != len(want) {
 		t.Fatalf("len(resolveLinks) = %d; want %d", len(got), len(want))
 	}
-	
+
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("resolveLinks[%d] = %q; want %q", i, got[i], want[i])
