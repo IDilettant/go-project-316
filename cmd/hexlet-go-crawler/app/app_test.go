@@ -58,6 +58,35 @@ func TestCLI_PrintsJSONOnly(t *testing.T) {
 	}
 }
 
+func TestCLI_PrintsJSONWhenAnalyzeReturnsError(t *testing.T) {
+	t.Parallel()
+
+	client := &http.Client{
+		Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			return nil, fmt.Errorf("dial error")
+		}),
+	}
+	clock := fixedClock{now: fixtureTime()}
+	args := []string{
+		"hexlet-go-crawler",
+		"--depth=1",
+		"--workers=1",
+		"--retries=0",
+		"--timeout=1s",
+		cliFixtureBaseURL,
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Run(args, &stdout, &stderr, client, clock)
+	require.NoError(t, err)
+
+	output := stdout.Bytes()
+	require.NotEmpty(t, output)
+	require.True(t, bytes.HasSuffix(output, []byte("\n")))
+	require.True(t, json.Valid(bytes.TrimSuffix(output, []byte("\n"))))
+}
+
 func buildExpectedCLIReport(t *testing.T, client *http.Client, clock limiter.Timer) []byte {
 	t.Helper()
 

@@ -62,7 +62,7 @@ type SEO struct {
 type BrokenLink struct {
 	URL        string `json:"url"`
 	StatusCode int    `json:"status_code"`
-	Error      string `json:"error"`
+	Error      string `json:"error,omitempty"`
 }
 
 // Asset describes a fetched asset; SizeBytes falls back to body length if Content-Length is missing.
@@ -71,5 +71,5 @@ type Asset struct {
 	Type       string `json:"type"`
 	StatusCode int    `json:"status_code"`
 	SizeBytes  int64  `json:"size_bytes"`
-	Error      string `json:"error"`
+	Error      string `json:"error,omitempty"`
 }

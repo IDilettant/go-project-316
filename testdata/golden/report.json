@@ -27,8 +27,7 @@
           "url": "https://example.com/static/logo.png",
           "type": "image",
           "status_code": 200,
-          "size_bytes": 12345,
-          "error": ""
+          "size_bytes": 12345
         }
       ],
       "discovered_at": "2024-06-01T12:34:56Z"

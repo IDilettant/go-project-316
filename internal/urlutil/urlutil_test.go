@@ -24,6 +24,7 @@ func TestResolve(t *testing.T) {
 		{name: "invalid url", href: "http://[::1", wantURL: "", wantOkay: false},
 		{name: "unsupported scheme", href: "mailto:test@example.com", wantURL: "", wantOkay: false},
 		{name: "relative path", href: " /docs?a=1#frag ", wantURL: "https://example.com/docs?a=1", wantOkay: true},
+		{name: "root path canonicalized", href: "/", wantURL: "https://example.com", wantOkay: true},
 		{name: "absolute https", href: "https://golang.org/doc#top", wantURL: "https://golang.org/doc", wantOkay: true},
 		{name: "protocol relative", href: "//cdn.example.com/app.js", wantURL: "https://cdn.example.com/app.js", wantOkay: true},
 	}
@@ -36,7 +37,7 @@ func TestResolve(t *testing.T) {
 			if gotOkay != tt.wantOkay {
 				t.Fatalf("unexpected ok flag: got %v want %v", gotOkay, tt.wantOkay)
 			}
-			
+
 			if gotURL != tt.wantURL {
 				t.Fatalf("unexpected resolved url: got %q want %q", gotURL, tt.wantURL)
 			}

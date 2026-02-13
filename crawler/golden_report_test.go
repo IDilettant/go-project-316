@@ -130,6 +130,16 @@ func TestAnalyze_SuccessPage_OmitsEmptyErrorField(t *testing.T) {
 
 	_, hasError := page["error"]
 	require.False(t, hasError, "successful page must omit empty error field")
+
+	assets, ok := page["assets"].([]any)
+	require.True(t, ok)
+	require.NotEmpty(t, assets)
+
+	asset, ok := assets[0].(map[string]any)
+	require.True(t, ok)
+
+	_, hasAssetError := asset["error"]
+	require.False(t, hasAssetError, "asset with empty error must omit error field")
 }
 
 func withIndent(opts crawler.Options, indent bool) crawler.Options {
