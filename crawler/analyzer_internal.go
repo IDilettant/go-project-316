@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -370,7 +371,12 @@ func (a *analyzer) processJob(ctx context.Context, job crawlJob) pageResult {
 		HasH1:          parsed.SEO.HasH1,
 	}
 
-	brokenLinks, pageLinks := a.checkLinks(ctx, job, parsed.Links)
+	brokenLinks := []BrokenLink{}
+	var pageLinks []string
+	if job.depth < a.maxDepth {
+		brokenLinks, pageLinks = a.checkLinks(ctx, job, parsed.Links)
+	}
+
 	page.BrokenLinks = dedupBrokenLinks(brokenLinks)
 	page.Assets = a.collectAssets(ctx, job.url, parsed.Assets)
 
@@ -539,10 +545,7 @@ func canonicalBrokenURL(raw string) string {
 	host := strings.ToLower(parsed.Hostname())
 	port := parsed.Port()
 
-	switch {
-	case parsed.Scheme == "http" && port == "80":
-		port = ""
-	case parsed.Scheme == "https" && port == "443":
+	if isDefaultPortForScheme(parsed.Scheme, port) {
 		port = ""
 	}
 
@@ -562,6 +565,19 @@ func canonicalBrokenURL(raw string) string {
 	}
 
 	return parsed.String()
+}
+
+func isDefaultPortForScheme(scheme string, port string) bool {
+	if port == "" || scheme == "" {
+		return false
+	}
+
+	defaultPort, err := net.LookupPort("tcp", scheme)
+	if err != nil {
+		return false
+	}
+
+	return port == strconv.Itoa(defaultPort)
 }
 
 func (a *analyzer) resolveLinks(pageURL string, links []string) []string {

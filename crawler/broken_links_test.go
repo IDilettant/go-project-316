@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -36,7 +37,7 @@ func TestSpec_BrokenLinks_IncludeOnlyBroken_AndUseAbsoluteURL(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       0, // not important for broken-links on the page
+		Depth:       1,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,
@@ -48,7 +49,7 @@ func TestSpec_BrokenLinks_IncludeOnlyBroken_AndUseAbsoluteURL(t *testing.T) {
 	report, err := analyzeReport(context.Background(), opts)
 	require.NoError(t, err)
 
-	require.Len(t, report.Pages, 1)
+	require.Len(t, report.Pages, 2)
 
 	bl := report.Pages[0].BrokenLinks
 	require.Len(t, bl, 1)
@@ -85,7 +86,7 @@ func TestSpec_BrokenLinks_NetworkError_StatusCodeZero(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       0,
+		Depth:       1,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,
@@ -131,7 +132,7 @@ func TestSpec_BrokenLinks_RetriesApply_AndLastAttemptWins(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       0,
+		Depth:       1,
 		Concurrency: 1,
 		Retries:     1, // allow 1 retry => total <= 2 calls
 		Timeout:     time.Second,
@@ -176,7 +177,7 @@ func TestSpec_BrokenLinks_DeduplicatesSameURLOnPage(t *testing.T) {
 
 	opts := Options{
 		URL:         fixtureBaseURL,
-		Depth:       0,
+		Depth:       1,
 		Concurrency: 1,
 		Retries:     0,
 		Timeout:     time.Second,
@@ -190,4 +191,55 @@ func TestSpec_BrokenLinks_DeduplicatesSameURLOnPage(t *testing.T) {
 	require.Len(t, report.Pages, 1)
 	require.Len(t, report.Pages[0].BrokenLinks, 1)
 	require.Equal(t, fixtureBaseURL+"/missing", report.Pages[0].BrokenLinks[0].URL)
+}
+
+func TestSpec_BrokenLinks_NotCollectedAtMaxDepth(t *testing.T) {
+	t.Parallel()
+
+	clock := &testClock{now: fixtureTime}
+	var missingCalls int
+
+	client := newFixtureClientWithRoutes(t, map[string]roundTripResponder{
+		"/": func(req *http.Request) (*http.Response, error) {
+			body := `<html><body><a href="/child">child</a></body></html>`
+			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
+		},
+		"/child": func(req *http.Request) (*http.Response, error) {
+			body := `<html><body><a href="/missing">missing</a></body></html>`
+			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
+		},
+		"/missing": func(req *http.Request) (*http.Response, error) {
+			missingCalls++
+			return responseForRequest(req, http.StatusNotFound, "missing", nil), nil
+		},
+	})
+
+	opts := Options{
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
+	}
+
+	report, err := analyzeReport(context.Background(), opts)
+	require.NoError(t, err)
+	require.Len(t, report.Pages, 2)
+
+	var childPage *Page
+	for i := range report.Pages {
+		parsedURL, parseErr := url.Parse(report.Pages[i].URL)
+		require.NoError(t, parseErr)
+		if parsedURL.Path == "/child" {
+			childPage = &report.Pages[i]
+			break
+		}
+	}
+
+	require.NotNil(t, childPage)
+	require.Empty(t, childPage.BrokenLinks)
+	require.Zero(t, missingCalls)
 }
