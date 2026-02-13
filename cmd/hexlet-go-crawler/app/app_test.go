@@ -62,14 +62,14 @@ func buildExpectedCLIReport(t *testing.T, client *http.Client, clock limiter.Tim
 	t.Helper()
 
 	opts := crawler.Options{
-		URL:        cliFixtureBaseURL,
-		Depth:      1,
-		IndentJSON: true,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         cliFixtureBaseURL,
+		Depth:       1,
+		IndentJSON:  true,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	data, err := crawler.Analyze(context.Background(), opts)
