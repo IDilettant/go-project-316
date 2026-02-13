@@ -35,14 +35,14 @@ func TestSpec_BrokenLinks_IncludeOnlyBroken_AndUseAbsoluteURL(t *testing.T) {
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0, // not important for broken-links on the page
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0, // not important for broken-links on the page
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
@@ -84,14 +84,14 @@ func TestSpec_BrokenLinks_NetworkError_StatusCodeZero(t *testing.T) {
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
@@ -130,14 +130,14 @@ func TestSpec_BrokenLinks_RetriesApply_AndLastAttemptWins(t *testing.T) {
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0,
-		Workers:    1,
-		Retries:    1, // allow 1 retry => total <= 2 calls
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     1, // allow 1 retry => total <= 2 calls
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
