@@ -23,14 +23,14 @@ func TestSpec_RootNetworkError_ReturnsError_ButReportHasPageWithStatusError(t *t
 	}
 
 	opts := Options{
-		URL:        "https://example.com",
-		Depth:      1,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         "https://example.com",
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
@@ -63,14 +63,14 @@ func TestSpec_NestedNetworkError_MustNotReturnAnalyzeError(t *testing.T) {
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      1,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
