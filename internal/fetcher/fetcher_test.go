@@ -74,6 +74,29 @@ func TestFetchOK(t *testing.T) {
 	}
 }
 
+func TestFetchPreservesURLWithoutTrailingSlash(t *testing.T) {
+	t.Parallel()
+
+	rawURL := "https://example.com"
+	sleepFn := func(context.Context, time.Duration) error { return nil }
+
+	rt := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		if req.URL.String() != rawURL {
+			t.Fatalf("request url = %q; want %q", req.URL.String(), rawURL)
+		}
+
+		return newResponse(http.StatusOK, "ok"), nil
+	})
+
+	client := &http.Client{Transport: rt}
+	fetch := newTestFetcher(client, 0, sleepFn)
+
+	_, err := fetch.Fetch(context.Background(), rawURL)
+	if err != nil {
+		t.Fatalf("Fetch returned error: %v", err)
+	}
+}
+
 func TestFetchGenericTransportError(t *testing.T) {
 	t.Parallel()
 

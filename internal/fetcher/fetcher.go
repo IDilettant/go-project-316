@@ -140,10 +140,6 @@ func (f *Fetcher) doRequest(ctx context.Context, rawURL string) (Result, error) 
 		return Result{}, fmt.Errorf("%w: %v", errInvalidRequest, err)
 	}
 
-	if parsedURL.Path == "" {
-		parsedURL.Path = "/"
-	}
-
 	request, err := http.NewRequestWithContext(requestCtx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: %v", errInvalidRequest, err)
