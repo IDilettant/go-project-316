@@ -44,6 +44,8 @@ func TestSpec_RootNetworkError_ReturnsError_ButReportHasPageWithStatusError(t *t
 	require.Equal(t, 0, p.HTTPStatus) // 0 when no response received
 	require.Equal(t, "error", p.Status)
 	require.NotEmpty(t, p.Error)
+	require.Nil(t, p.BrokenLinks)
+	require.Nil(t, p.Assets)
 }
 
 func TestSpec_NestedNetworkError_MustNotReturnAnalyzeError(t *testing.T) {

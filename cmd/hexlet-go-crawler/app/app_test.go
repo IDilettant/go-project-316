@@ -87,12 +87,41 @@ func TestCLI_PrintsJSONWhenAnalyzeReturnsError(t *testing.T) {
 	require.True(t, json.Valid(bytes.TrimSuffix(output, []byte("\n"))))
 }
 
+func TestCLI_DefaultDepthIsTen(t *testing.T) {
+	t.Parallel()
+
+	client := newFixtureClient(t)
+	clock := fixedClock{now: fixtureTime()}
+	args := []string{
+		"hexlet-go-crawler",
+		"--workers=1",
+		"--retries=0",
+		"--timeout=1s",
+		cliFixtureBaseURL,
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	err := Run(args, &stdout, &stderr, client, clock)
+	require.NoError(t, err)
+	require.Empty(t, stderr.String())
+
+	expected := buildExpectedCLIReportWithDepth(t, client, clock, 10)
+	require.Equal(t, string(expected), stdout.String())
+}
+
 func buildExpectedCLIReport(t *testing.T, client *http.Client, clock limiter.Timer) []byte {
+	t.Helper()
+
+	return buildExpectedCLIReportWithDepth(t, client, clock, 1)
+}
+
+func buildExpectedCLIReportWithDepth(t *testing.T, client *http.Client, clock limiter.Timer, depth int) []byte {
 	t.Helper()
 
 	opts := crawler.Options{
 		URL:         cliFixtureBaseURL,
-		Depth:       1,
+		Depth:       depth,
 		IndentJSON:  true,
 		Concurrency: 1,
 		Retries:     0,

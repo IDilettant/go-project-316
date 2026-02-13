@@ -335,6 +335,8 @@ func (a *analyzer) processJob(ctx context.Context, job crawlJob) pageResult {
 	if err != nil || result.StatusCode >= http.StatusBadRequest {
 		page.Status = statusError
 		page.Error = errorString(err, result.StatusCode)
+		page.BrokenLinks = nil
+		page.Assets = nil
 
 		return pageResult{
 			job:  job,
@@ -347,6 +349,8 @@ func (a *analyzer) processJob(ctx context.Context, job crawlJob) pageResult {
 	if parseErr != nil {
 		page.Status = statusError
 		page.Error = fmt.Sprintf("parse html: %v", parseErr)
+		page.BrokenLinks = nil
+		page.Assets = nil
 
 		return pageResult{
 			job:  job,
@@ -455,6 +459,7 @@ func buildLinkResults(results []linkCheck, processed []bool) ([]BrokenLink, []st
 
 	brokenLinks := make([]BrokenLink, 0, len(results))
 	crawlLinks := make([]string, 0, len(results))
+	seenBroken := map[string]bool{}
 
 	for idx, res := range results[:len(processed)] {
 		if !processed[idx] {
@@ -462,7 +467,20 @@ func buildLinkResults(results []linkCheck, processed []bool) ([]BrokenLink, []st
 		}
 
 		if res.broken {
-			brokenLinks = append(brokenLinks, res.link)
+			key := res.url
+			if key == "" {
+				key = res.link.URL
+			}
+
+			if seenBroken[key] {
+				continue
+			}
+
+			seenBroken[key] = true
+
+			broken := res.link
+			broken.URL = key
+			brokenLinks = append(brokenLinks, broken)
 
 			continue
 		}

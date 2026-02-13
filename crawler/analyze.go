@@ -3,6 +3,7 @@ package crawler
 import (
 	"context"
 	"encoding/json"
+	"sort"
 )
 
 // Analyze crawls a site and returns a JSON report as bytes.
@@ -14,6 +15,8 @@ func Analyze(ctx context.Context, opts Options) ([]byte, error) {
 }
 
 func marshalReport(report Report, indent bool) []byte {
+	sortPages(report.Pages)
+
 	var (
 		data []byte
 		err  error
@@ -38,4 +41,14 @@ func ensureNewline(data []byte) []byte {
 	}
 
 	return data
+}
+
+func sortPages(pages []Page) {
+	sort.SliceStable(pages, func(i, j int) bool {
+		if pages[i].Depth != pages[j].Depth {
+			return pages[i].Depth < pages[j].Depth
+		}
+
+		return pages[i].URL < pages[j].URL
+	})
 }

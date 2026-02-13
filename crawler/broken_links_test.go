@@ -152,3 +152,42 @@ func TestSpec_BrokenLinks_RetriesApply_AndLastAttemptWins(t *testing.T) {
 	require.LessOrEqual(t, missingCalls, 2)
 	require.Equal(t, 2, missingCalls, "must call exactly retries+1 when first attempt fails and second returns final state")
 }
+
+func TestSpec_BrokenLinks_DeduplicatesSameURLOnPage(t *testing.T) {
+	t.Parallel()
+
+	clock := &testClock{now: fixtureTime}
+
+	client := newFixtureClientWithRoutes(t, map[string]roundTripResponder{
+		"/": func(req *http.Request) (*http.Response, error) {
+			body := `
+				<html><body>
+					<a href="/missing">M1</a>
+					<a href="/missing">M2</a>
+				</body></html>
+			`
+
+			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
+		},
+		"/missing": func(req *http.Request) (*http.Response, error) {
+			return responseForRequest(req, http.StatusNotFound, "missing", nil), nil
+		},
+	})
+
+	opts := Options{
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
+	}
+
+	report, err := analyzeReport(context.Background(), opts)
+	require.NoError(t, err)
+	require.Len(t, report.Pages, 1)
+	require.Len(t, report.Pages[0].BrokenLinks, 1)
+	require.Equal(t, fixtureBaseURL+"/missing", report.Pages[0].BrokenLinks[0].URL)
+}

@@ -209,3 +209,43 @@ func TestResolveLinksSkipsInvalid(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildLinkResults_DeduplicatesBrokenLinksByCanonicalURL(t *testing.T) {
+	t.Parallel()
+
+	results := []linkCheck{
+		{
+			broken: true,
+			link: BrokenLink{
+				URL:        "/missing",
+				StatusCode: 404,
+				Error:      "Not Found",
+			},
+			url: "https://example.com/missing",
+		},
+		{
+			broken: true,
+			link: BrokenLink{
+				URL:        "https://example.com/missing",
+				StatusCode: 404,
+				Error:      "Not Found",
+			},
+			url: "https://example.com/missing",
+		},
+	}
+
+	processed := []bool{true, true}
+
+	brokenLinks, crawlLinks := buildLinkResults(results, processed)
+	if len(crawlLinks) != 0 {
+		t.Fatalf("len(crawlLinks) = %d; want 0", len(crawlLinks))
+	}
+
+	if len(brokenLinks) != 1 {
+		t.Fatalf("len(brokenLinks) = %d; want 1", len(brokenLinks))
+	}
+
+	if brokenLinks[0].URL != "https://example.com/missing" {
+		t.Fatalf("brokenLinks[0].URL = %q; want %q", brokenLinks[0].URL, "https://example.com/missing")
+	}
+}

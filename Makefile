@@ -18,5 +18,25 @@ cover:
 		-covermode=atomic -coverpkg=./... -coverprofile=coverage.out
 	go tool cover -func=coverage.out
 
+spec-a:
+	go test -v ./crawler -run TestSpec -count=1
 
-.PHONY: build test race run lint cover
+spec-b: spec-a
+
+spec-c: spec-a
+
+spec-d: spec-a
+
+spec-e: spec-a
+
+spec-f: spec-a
+
+spec-g: spec-a
+
+spec-h: spec-a
+
+spec-i: spec-a
+
+spec-check: spec-a
+
+.PHONY: build test race run lint cover spec-a spec-b spec-c spec-d spec-e spec-f spec-g spec-h spec-i spec-check

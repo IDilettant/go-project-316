@@ -3,6 +3,7 @@ package crawler_test
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -140,6 +141,53 @@ func TestAnalyze_SuccessPage_OmitsEmptyErrorField(t *testing.T) {
 
 	_, hasAssetError := asset["error"]
 	require.False(t, hasAssetError, "asset with empty error must omit error field")
+}
+
+func TestAnalyze_PagesAreSortedByDepthThenURL(t *testing.T) {
+	t.Parallel()
+
+	clock := &testClock{now: fixtureTime}
+	client := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			path := req.URL.Path
+			if path == "" {
+				path = "/"
+			}
+
+			switch path {
+			case "/":
+				return responseWithBody(http.StatusOK, []byte(`<html><body><a href="/b"></a><a href="/a"></a></body></html>`), http.Header{
+					"Content-Type": []string{"text/html"},
+				}), nil
+			case "/a", "/b":
+				return responseWithBody(http.StatusOK, []byte(`<html><body>ok</body></html>`), http.Header{
+					"Content-Type": []string{"text/html"},
+				}), nil
+			default:
+				return responseWithBody(http.StatusNotFound, []byte("not found"), http.Header{}), nil
+			}
+		}),
+	}
+
+	opts := crawler.Options{
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		HTTPClient:  client,
+		Clock:       clock,
+	}
+
+	data, err := crawler.Analyze(context.Background(), opts)
+	require.NoError(t, err)
+
+	var report crawler.Report
+	require.NoError(t, json.Unmarshal(data, &report))
+	require.Len(t, report.Pages, 3)
+	require.Equal(t, fixtureBaseURL, report.Pages[0].URL)
+	require.Equal(t, fixtureBaseURL+"/a", report.Pages[1].URL)
+	require.Equal(t, fixtureBaseURL+"/b", report.Pages[2].URL)
 }
 
 func withIndent(opts crawler.Options, indent bool) crawler.Options {

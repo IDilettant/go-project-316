@@ -67,15 +67,11 @@ func Run(args []string, stdout, stderr io.Writer, client *http.Client, clock lim
 		client.Timeout = c.Duration("timeout")
 		options := optionsFromCLI(c, rootURL, client, clock)
 
-		report, err := crawler.Analyze(context.Background(), options)
+		report, _ := crawler.Analyze(context.Background(), options)
+
 		_, writeErr := stdout.Write(report)
 		if writeErr != nil {
 			return writeErr
-		}
-
-		if err != nil {
-			// Crawl/runtime errors are encoded in report JSON; keep exit code 0.
-			return nil
 		}
 
 		return nil
