@@ -65,23 +65,13 @@ func TestSpec_BrokenLinks_NetworkError_StatusCodeZero(t *testing.T) {
 
 	client := newFixtureClientWithRoutes(t, map[string]roundTripResponder{
 		"/": func(req *http.Request) (*http.Response, error) {
-			body := `<html><body><a href="https://cdn.example.com/app.js">X</a></body></html>`
+			body := `<html><body><a href="/broken">X</a></body></html>`
 
 			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
 		},
-	})
-
-	// We block external host at transport level, but for broken-link checks it must be requested.
-	// We use a separate "external" client: allow any host, but fail with a network error on cdn.
-	client.Transport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
-		if req.URL.Host == "example.com" {
-			return responseForRequest(req, http.StatusOK, `<html><body><a href="https://cdn.example.com/app.js">X</a></body></html>`, http.Header{"Content-Type": []string{"text/html"}}), nil
-		}
-		if req.URL.Host == "cdn.example.com" {
-			return nil, errors.New(`Get "https://cdn.example.com/app.js": dial tcp: lookup cdn.example.com: no such host`)
-		}
-
-		return nil, errors.New("unexpected host")
+		"/broken": func(req *http.Request) (*http.Response, error) {
+			return nil, errors.New(`Get "https://example.com/broken": dial tcp: lookup example.com: no such host`)
+		},
 	})
 
 	opts := Options{
@@ -103,7 +93,7 @@ func TestSpec_BrokenLinks_NetworkError_StatusCodeZero(t *testing.T) {
 	bl := report.Pages[0].BrokenLinks
 	require.Len(t, bl, 1)
 
-	require.Equal(t, "https://cdn.example.com/app.js", bl[0].URL)
+	require.Equal(t, fixtureBaseURL+"/broken", bl[0].URL)
 	require.Equal(t, 0, bl[0].StatusCode)
 	require.Contains(t, bl[0].Error, "no such host")
 }

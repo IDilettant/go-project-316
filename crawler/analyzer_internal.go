@@ -392,6 +392,10 @@ func (a *analyzer) checkLinks(ctx context.Context, job crawlJob, links []string)
 	if len(resolved) == 0 {
 		return []BrokenLink{}, []string{}
 	}
+	resolved = filterSameOriginLinks(a.baseURL, resolved)
+	if len(resolved) == 0 {
+		return []BrokenLink{}, []string{}
+	}
 
 	results, processed := a.runLinkChecks(ctx, resolved)
 
@@ -606,6 +610,19 @@ func (a *analyzer) resolveLinks(pageURL string, links []string) []string {
 	}
 
 	return resolved
+}
+
+func filterSameOriginLinks(baseURL *url.URL, links []string) []string {
+	filtered := make([]string, 0, len(links))
+	for _, link := range links {
+		if !urlutil.SameOrigin(baseURL, link) {
+			continue
+		}
+
+		filtered = append(filtered, link)
+	}
+
+	return filtered
 }
 
 func (a *analyzer) checkBrokenLink(ctx context.Context, absoluteURL string) (BrokenLink, bool) {
