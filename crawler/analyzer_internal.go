@@ -155,7 +155,7 @@ func newAnalyzer(options Options, baseURL *url.URL, fetch *fetcher.Fetcher, repo
 }
 
 func (a *analyzer) run(ctx context.Context) error {
-	workerCount := a.options.Workers
+	workerCount := a.options.Concurrency
 	if workerCount < 1 {
 		workerCount = 1
 	}
@@ -427,7 +427,7 @@ func normalizeMaxConcurrentFetch(opts Options) int {
 	maxConcurrentFetch := opts.MaxConcurrentFetch
 
 	if maxConcurrentFetch <= 0 {
-		maxConcurrentFetch = opts.Workers
+		maxConcurrentFetch = opts.Concurrency
 	}
 
 	if maxConcurrentFetch < 1 {
