@@ -129,12 +129,13 @@ func (f *Fetcher) shouldRetry(
 
 func (f *Fetcher) doRequest(ctx context.Context, rawURL string) (Result, error) {
 	requestCtx := ctx
-
-	cancel := func() {}
+	var cancel context.CancelFunc
 	if f.timeout > 0 {
 		requestCtx, cancel = context.WithTimeout(ctx, f.timeout)
 	}
-	defer cancel()
+	if cancel != nil {
+		defer cancel()
+	}
 
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -283,7 +284,7 @@ func statusText(statusCode int) string {
 	return text
 }
 
-func coalesceError(primary error, fallback error) error {
+func coalesceError(primary, fallback error) error {
 	if primary != nil {
 		return primary
 	}
