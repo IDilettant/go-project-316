@@ -28,7 +28,7 @@ func TestSpec_Assets_CacheByFullURL_NoDuplicateFetch(t *testing.T) {
 					<img src="/static/logo.png"/>
 				</body></html>
 			`
-			
+
 			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
 		},
 		"/static/app.css": func(req *http.Request) (*http.Response, error) {
@@ -37,7 +37,7 @@ func TestSpec_Assets_CacheByFullURL_NoDuplicateFetch(t *testing.T) {
 			h := http.Header{}
 			h.Set("Content-Length", strconv.Itoa(len(b)))
 			h.Set("Content-Type", "text/css")
-			
+
 			return responseWithBody(http.StatusOK, b, h), nil
 		},
 		"/static/logo.png": func(req *http.Request) (*http.Response, error) {
@@ -45,20 +45,20 @@ func TestSpec_Assets_CacheByFullURL_NoDuplicateFetch(t *testing.T) {
 			b := []byte("pngdata")
 			h := http.Header{}
 			h.Set("Content-Type", "image/png")
-			
+
 			return responseWithBody(http.StatusOK, b, h), nil
 		},
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
@@ -85,12 +85,12 @@ func TestSpec_Assets_CacheByURL_RespectsTypePerPage(t *testing.T) {
 					<img src="/static/shared.bin"/>
 				</body></html>
 			`
-			
+
 			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
 		},
 		"/a": func(req *http.Request) (*http.Response, error) {
 			body := `<html><body><script src="/static/shared.bin"></script></body></html>`
-			
+
 			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
 		},
 		"/static/shared.bin": func(req *http.Request) (*http.Response, error) {
@@ -98,20 +98,20 @@ func TestSpec_Assets_CacheByURL_RespectsTypePerPage(t *testing.T) {
 			b := []byte("bin")
 			h := http.Header{}
 			h.Set("Content-Length", strconv.Itoa(len(b)))
-			
+
 			return responseWithBody(http.StatusOK, b, h), nil
 		},
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      1,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       1,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
@@ -122,7 +122,7 @@ func TestSpec_Assets_CacheByURL_RespectsTypePerPage(t *testing.T) {
 
 	var rootAssets []Asset
 	var pageAssets []Asset
-	
+
 	for _, page := range report.Pages {
 		switch page.URL {
 		case fixtureBaseURL:
@@ -147,7 +147,7 @@ func TestSpec_Assets_RetriesApply_500Then200_OK(t *testing.T) {
 	client := newFixtureClientWithRoutes(t, map[string]roundTripResponder{
 		"/": func(req *http.Request) (*http.Response, error) {
 			body := `<html><body><script src="/static/app.js"></script></body></html>`
-			
+
 			return responseForRequest(req, http.StatusOK, body, http.Header{"Content-Type": []string{"text/html"}}), nil
 		},
 		"/static/app.js": func(req *http.Request) (*http.Response, error) {
@@ -155,20 +155,20 @@ func TestSpec_Assets_RetriesApply_500Then200_OK(t *testing.T) {
 			if calls == 1 {
 				return responseWithBody(http.StatusInternalServerError, []byte("boom"), nil), nil
 			}
-			
+
 			return responseWithBody(http.StatusOK, []byte("ok"), http.Header{"Content-Length": []string{"2"}}), nil
 		},
 	})
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0,
-		Workers:    1,
-		Retries:    1,
-		Timeout:    time.Second,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     1,
+		Timeout:     time.Second,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
@@ -197,20 +197,20 @@ func TestSpec_Assets_TimeoutApplied_StatusCodeZero_WithError(t *testing.T) {
 			if req.URL.Path == "/" {
 				return responseForRequest(req, http.StatusOK, `<html><body><img src="/static/slow.png"/></body></html>`, http.Header{"Content-Type": []string{"text/html"}}), nil
 			}
-			
+
 			return nil, errors.New("context deadline exceeded")
 		}),
 	}
 
 	opts := Options{
-		URL:        fixtureBaseURL,
-		Depth:      0,
-		Workers:    1,
-		Retries:    0,
-		Timeout:    1 * time.Millisecond,
-		UserAgent:  "test-agent",
-		HTTPClient: client,
-		Clock:      clock,
+		URL:         fixtureBaseURL,
+		Depth:       0,
+		Concurrency: 1,
+		Retries:     0,
+		Timeout:     1 * time.Millisecond,
+		UserAgent:   "test-agent",
+		HTTPClient:  client,
+		Clock:       clock,
 	}
 
 	report, err := analyzeReport(context.Background(), opts)
