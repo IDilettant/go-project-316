@@ -129,11 +129,9 @@ func (f *Fetcher) shouldRetry(
 
 func (f *Fetcher) doRequest(ctx context.Context, rawURL string) (Result, error) {
 	requestCtx := ctx
-	var cancel context.CancelFunc
 	if f.timeout > 0 {
+		var cancel context.CancelFunc
 		requestCtx, cancel = context.WithTimeout(ctx, f.timeout)
-	}
-	if cancel != nil {
 		defer cancel()
 	}
 
